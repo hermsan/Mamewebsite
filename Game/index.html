@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Catch the $MAME Coin</title>
+    
+    <style>
+        /* =========================================
+           RESET & BASIC SETUP
+           ========================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none; 
+        }
+
+        /* =========================================
+           GAME CONTAINER & BACKGROUND
+           ========================================= */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('bg.jpg');
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+        }
+
+        /* =========================================
+           UI (HUD) - SCORE & HEALTH
+           ========================================= */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .score-box {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 2px solid #ff9800;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+        }
+
+        .score-box img {
+            width: 30px;
+            margin-right: 10px;
+        }
+
+        .health-box {
+            font-size: 1.5rem;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,1);
+        }
+
+        /* =========================================
+           ENTITAS GAME (PLAYER & KOIN)
+           ========================================= */
+        #player {
+            position: absolute;
+            bottom: 120px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px; /* Ukuran Player */
+            height: auto;
+            z-index: 5;
+            transition: transform 0.1s;
+        }
+
+        .falling-coin {
+            position: absolute;
+            width: 45px; 
+            height: auto;
+            z-index: 4;
+            animation: spin 1s linear infinite; 
+        }
+
+        @keyframes spin {
+            0% { transform: scaleX(1); }
+            50% { transform: scaleX(0.2); }
+            100% { transform: scaleX(1); }
+        }
+
+        /* =========================================
+           KONTROL TOMBOL (LEFT & RIGHT)
+           ========================================= */
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 10;
+        }
+
+        .btn {
+            background: rgba(255, 152, 0, 0.85);
+            border: 2px solid #fff;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 15px 40px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+            transition: transform 0.1s, background 0.1s;
+            cursor: pointer;
+        }
+
+        .btn:active {
+            transform: scale(0.85); 
+            background: #ff5722;
+        }
+
+        /* =========================================
+           LAYAR GAME OVER
+           ========================================= */
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+            text-align: center;
+        }
+
+        #game-over h1 {
+            font-size: 3.5rem;
+            color: #ff3333;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            text-shadow: 3px 3px 0 #fff;
+            letter-spacing: 2px;
+        }
+
+        .player-ui {
+            margin-bottom: 20px;
+        }
+
+        .player-ui img {
+            width: 100px;
+            border-radius: 10px;
+            border: 2px solid #00ffcc;
+            background: rgba(0,0,0,0.5);
+            padding: 5px;
+        }
+
+        .player-ui p {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #00ffcc;
+            margin-top: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .final-score {
+            display: flex;
+            align-items: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 40px;
+            color: #ffd700;
+        }
+
+        .final-score img {
+            width: 50px;
+            margin-right: 15px;
+        }
+
+        .restart-btn {
+            background: linear-gradient(90deg, #00ffcc, #00b38f);
+            color: #000;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: transform 0.1s;
+        }
+
+        .restart-btn:active {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MUSIK BGM GAME DIUBAH AGAR LEBIH RESPONSIF -->
+    <audio id="bgm" src="bgm.mp3" preload="auto" loop></audio>
+
+    <div id="game-container">
+        
+        <div id="hud">
+            <div class="score-box">
+                <img src="coin.png" alt="Coin">
+                <span id="score">0</span>
+            </div>
+            <div class="health-box" id="health">❤️❤️❤️</div>
+        </div>
+
+        <img src="player.png" id="player" alt="Player">
+
+        <div id="controls">
+            <button class="btn" id="btn-left">LEFT</button>
+            <button class="btn" id="btn-right">RIGHT</button>
+        </div>
+
+        <div id="game-over">
+            <h1>Game Over</h1>
+            
+            <div class="player-ui">
+                <img src="player.png" alt="Mame Profile">
+                <p>MAME</p>
+            </div>
+
+            <div class="final-score">
+                <img src="coin.png" alt="Coin">
+                <span id="final-score-text">0</span>
+            </div>
+
+            <button class="restart-btn" onclick="restartGame()">RESTART</button>
+        </div>
+
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameContainer = document.getElementById('game-container');
+        const scoreText = document.getElementById('score');
+        const healthText = document.getElementById('health');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScoreText = document.getElementById('final-score-text');
+        
+        // Setup BGM
+        const bgm = document.getElementById('bgm');
+        let bgmStarted = false;
+        
+        let score = 0;
+        let lives = 3;
+        let isGameOver = false;
+        
+        let playerWidth = 140;
+        let playerX = window.innerWidth / 2 - (playerWidth / 2); 
+        let playerSpeed = 8;
+        let movingLeft = false;
+        let movingRight = false;
+
+        let coinFallSpeed = 5;
+        let coinSpawnRate = 1200; 
+        let coinSpawner;
+        let animationFrameId;
+
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+
+        // ==========================================
+        // SISTEM MUSIK BARU (Lebih Agresif)
+        // ==========================================
+        function startMusic() {
+            if (!bgmStarted && !isGameOver) {
+                bgm.play().then(() => {
+                    bgmStarted = true;
+                }).catch(err => console.log("Menunggu interaksi user..."));
+            }
+        }
+
+        // Musik akan menyala saat pertama kali pemain mengetuk area manapun di layar
+        window.addEventListener('touchstart', startMusic, { once: true });
+        window.addEventListener('click', startMusic, { once: true });
+
+
+        // Kontrol Sentuhan HP
+        btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); movingLeft = true; startMusic(); });
+        btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); movingLeft = false; });
+        btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); movingRight = true; startMusic(); });
+        btnRight.addEventListener('touchend', (e) => { e.preventDefault(); movingRight = false; });
+
+        // Kontrol Klik Mouse PC
+        btnLeft.addEventListener('mousedown', () => { movingLeft = true; startMusic(); });
+        btnLeft.addEventListener('mouseup', () => movingLeft = false);
+        btnRight.addEventListener('mousedown', () => { movingRight = true; startMusic(); });
+        btnRight.addEventListener('mouseup', () => movingRight = false);
+
+        function spawnCoin() {
+            if (isGameOver) return;
+            const coin = document.createElement('img');
+            coin.src = 'coin.png';
+            coin.classList.add('falling-coin');
+            const randomX = Math.floor(Math.random() * (window.innerWidth - 45));
+            coin.style.left = randomX + 'px';
+            coin.style.top = '-50px'; 
+            gameContainer.appendChild(coin);
+        }
+
+        function updateHealth() {
+            let hearts = '';
+            for(let i = 0; i < lives; i++) hearts += '❤️';
+            healthText.innerText = hearts;
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+
+        function gameLoop() {
+            if (isGameOver) return;
+
+            if (movingLeft && playerX > 0) {
+                playerX -= playerSpeed;
+                player.style.transform = "translateX(0) scaleX(-1)"; 
+            }
+            if (movingRight && playerX < window.innerWidth - playerWidth) {
+                playerX += playerSpeed;
+                player.style.transform = "translateX(0) scaleX(1)"; 
+            }
+            player.style.left = playerX + 'px';
+
+            const coins = document.querySelectorAll('.falling-coin');
+            coins.forEach(coin => {
+                let coinY = parseFloat(coin.style.top);
+                coinY += coinFallSpeed;
+                coin.style.top = coinY + 'px';
+
+                const playerRect = player.getBoundingClientRect();
+                const coinRect = coin.getBoundingClientRect();
+
+                // Hitbox collision
+                if (
+                    coinRect.bottom >= playerRect.top + 30 && 
+                    coinRect.top <= playerRect.bottom &&
+                    coinRect.right >= playerRect.left + 20 &&
+                    coinRect.left <= playerRect.right - 20
+                ) {
+                    coin.remove(); 
+                    score += 1;
+                    scoreText.innerText = score;
+                    
+                    // Efek suara tangkap koin
+                    let sound = new Audio('coin.mp3');
+                    sound.play();
+                    
+                    if (score % 10 === 0) coinFallSpeed += 0.5; 
+                } 
+                else if (coinY > window.innerHeight) {
+                    coin.remove(); 
+                    lives -= 1; 
+                    updateHealth();
+                }
+            });
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            isGameOver = true;
+            clearInterval(coinSpawner);
+            cancelAnimationFrame(animationFrameId);
+            document.querySelectorAll('.falling-coin').forEach(c => c.remove());
+            finalScoreText.innerText = score;
+            gameOverScreen.style.display = 'flex';
+            
+            // Matikan BGM saat game over
+            bgm.pause();
+            bgmStarted = false;
+        }
+
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            coinFallSpeed = 5;
+            isGameOver = false;
+            
+            scoreText.innerText = score;
+            updateHealth();
+            
+            playerX = window.innerWidth / 2 - (playerWidth / 2); 
+            player.style.left = playerX + 'px';
+            player.style.transform = "translateX(0) scaleX(1)";
+            
+            gameOverScreen.style.display = 'none';
+
+            // Nyalakan lagu kembali
+            bgm.currentTime = 0; 
+            startMusic();
+
+            coinSpawner = setInterval(spawnCoin, coinSpawnRate);
+            gameLoop();
+        }
+
+        coinSpawner = setInterval(spawnCoin, coinSpawnRate);
+        gameLoop();
+        
+    </script>
+</body>
+</html>
