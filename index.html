@@ -323,6 +323,7 @@
 </head>
 <body>
 
+    <!-- Pastikan file Mame.mp3 berada di folder yang sama dengan index.html di GitHub -->
     <audio id="bgMusic" loop>
         <source src="Mame.mp3" type="audio/mpeg">
     </audio>
@@ -502,45 +503,33 @@
             });
         }
 
+        // FUNGSI UNTUK MENGATUR MUSIK (PLAY/PAUSE)
         function toggleMusic() {
             var music = document.getElementById("bgMusic");
             var icon = document.getElementById("musicIcon");
 
-            if (music.paused) { 
-                music.play(); 
-                icon.className = "fas fa-volume-up music-playing"; 
-            } else { 
-                music.pause(); 
-                icon.className = "fas fa-volume-mute"; 
+            if (music.paused) {
+                music.play();
+                icon.classList.remove("fa-volume-mute");
+                icon.classList.add("fa-volume-up");
+                icon.classList.add("music-playing"); 
+            } else {
+                music.pause();
+                icon.classList.remove("fa-volume-up");
+                icon.classList.add("fa-volume-mute");
+                icon.classList.remove("music-playing");
             }
         }
 
+        // FUNGSI COPY SMART CONTRACT (Tambahan agar tombol copy berfungsi)
         function copyContract() {
-            var textToCopy = document.getElementById("contractAddr").innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                alert("Smart Contract successfully copied!");
+            var contractText = document.getElementById("contractAddr").innerText;
+            navigator.clipboard.writeText(contractText).then(() => {
+                alert("Smart Contract disalin: " + contractText);
+            }).catch(err => {
+                console.error("Gagal menyalin: ", err);
             });
         }
-
-        function createCoins() {
-            const numCoins = 15;
-            for (let i = 0; i < numCoins; i++) {
-                let coin = document.createElement("img");
-                coin.src = "coin.png"; 
-                coin.className = "falling-coin";
-                coin.style.left = Math.random() * 100 + "vw";
-                coin.style.animationDuration = (Math.random() * 3 + 3) + "s";
-                coin.style.animationDelay = (Math.random() * 5) + "s";
-                coin.style.width = (Math.random() * 20 + 25) + "px";
-                document.body.appendChild(coin);
-            }
-        }
-
-        window.onload = () => { 
-            gantiBahasa(); 
-            createCoins(); 
-        };
     </script>
-
 </body>
 </html>
